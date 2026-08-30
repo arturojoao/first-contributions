@@ -9,6 +9,12 @@ Produces an INNOV-R Architecture+Engineering+Construction fee proposal matching 
 template, delivered as both a `.docx` and a `.pdf`. Built from two prior proposals on file
 (structural plans/calculations jobs); the structure below is copied from them exactly.
 
+Note: fixed dollar amounts below are written as `\$1,000.00` (backslash before the `$`), not `$1,000.00`.
+This is intentional — a `$` immediately followed by a digit in this file gets corrupted by
+positional-parameter-style substitution when the skill is invoked with args (e.g. `$1,000.00` became
+`run,000.00` in testing, replaced with words from the invocation's args string). Keep the backslash;
+write the actual generated document with a plain `$`, no backslash.
+
 ## Required inputs — ask if any are missing, do not guess
 
 - Client name (for `ATTN:`)
@@ -23,7 +29,7 @@ template, delivered as both a `.docx` and a `.pdf`. Built from two prior proposa
   (919) 213-7623
 - Signature block: Arturo J. Garcia, Project Manager/Designer, INNOV-R
 - Proposal validity: 30 days from the date of issuance
-- Payment terms: $1,000.00 down payment required to initiate work; remaining balance billed as work
+- Payment terms: a \$1,000.00 down payment required to initiate work; remaining balance billed as work
   progresses and fully due at completion; other design services not listed may be provided on request
   at separately negotiated fees
 - Baseline exclusions (always include, then append any scope-specific ones): permit or review fees,
@@ -60,7 +66,7 @@ Note:
 - This proposal valid for 30 days from the date of issuance.
 
 The professional fee for this work shall be a stipulated sum of [total amount in words] dollars. A
-$1,000.00 down payment is required to initiate work, remaining balances will be billed as work
+\$1,000.00 down payment is required to initiate work, remaining balances will be billed as work
 progresses and fully due at completion of work. Other design services not specifically included in
 this proposal may be provided upon request by the Client at fees negotiated for those services.
 
@@ -79,7 +85,7 @@ Architecture+Engineering+Construction         __________________________________
 ## Steps
 
 1. Gather the required inputs above; ask for anything missing rather than guessing.
-2. Spell out the total fee in words for the payment paragraph (e.g. $3,500.00 → "three thousand five
+2. Spell out the total fee in words for the payment paragraph (e.g. \$3,500.00 → "three thousand five
    hundred dollars").
 3. Load the `docx` skill and build the `.docx` following the structure exactly.
 4. Convert it to `.pdf` (via the `pdf` skill, or the docx skill's own export path) so both files exist.
