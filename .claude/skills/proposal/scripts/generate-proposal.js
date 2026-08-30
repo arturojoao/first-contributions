@@ -11,16 +11,23 @@
 //   "address": "123 Test St, Yuma, AZ 85364",
 //   "apn": null,                              // omit or null if none given
 //   "introText": "the deck addition at the above reference address",
-//   "scopeItems": [
-//     { "label": "Structural Plans and Calculations for deck addition", "fee": "$2,000.00" }
+//   "sections": [                             // one or more scope-of-work sections
+//     {
+//       "title": "Structural Engineering",
+//       "deliverables": ["Structural Plans", "Structural Calculations"],
+//       "fee": 3500                           // plain number, no "$" — this section's fee
+//     }
 //   ],
-//   "exclusionsExtra": "",                    // scope-specific exclusions beyond the baseline, or ""
-//   "totalWords": "two thousand"              // fee spelled out, WITHOUT the trailing word "dollars"
+//   "exclusionsExtra": "",                    // scope-specific exclusions beyond baseline, or ""
+//   "downPaymentPercent": 30                  // omit to use the 30% default
 // }
 //
+// Total fee, its down payment, and the amount spelled out in words are all computed here —
+// never hand-type totals or word-spellings into the data file.
+//
 // Requires the `docx` npm package. If `require("docx")` fails, run
-// `npm install docx` in this script's working directory first (see the
-// docx skill for details) — it is not committed to this repo.
+// `npm install --prefix /tmp/docx-deps docx` and re-run this script with
+// `NODE_PATH=/tmp/docx-deps/node_modules` set — see SKILL.md. Do not commit node_modules.
 
 const fs = require("fs");
 const path = require("path");
@@ -36,6 +43,38 @@ if (!dataPath || !outputPath) {
   process.exit(1);
 }
 const data = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+const downPaymentPercent = data.downPaymentPercent ?? 30;
+
+// ---- number -> words (whole dollars only; these proposals never quote cents) ----
+const ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+function threeDigitsToWords(n) {
+  let s = "";
+  if (n >= 100) { s += `${ONES[Math.floor(n / 100)]} hundred`; n %= 100; if (n) s += " "; }
+  if (n >= 20) { s += TENS[Math.floor(n / 10)]; if (n % 10) s += `-${ONES[n % 10]}`; }
+  else if (n > 0) { s += ONES[n]; }
+  return s;
+}
+function numberToWords(num) {
+  num = Math.round(num);
+  if (num === 0) return "zero";
+  const parts = [];
+  const groups = [[1e9, "billion"], [1e6, "million"], [1e3, "thousand"], [1, ""]];
+  let rest = num;
+  for (const [size, name] of groups) {
+    const count = Math.floor(rest / size);
+    if (count > 0) {
+      parts.push(name ? `${threeDigitsToWords(count)} ${name}` : threeDigitsToWords(count));
+      rest %= size;
+    }
+  }
+  return parts.join(" ");
+}
+const money = (n) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const totalFee = data.sections.reduce((sum, s) => sum + s.fee, 0);
+const downPayment = Math.round(totalFee * downPaymentPercent / 100);
 
 const FONT = "Times New Roman";
 const PAGE_WIDTH = 12240, PAGE_HEIGHT = 15840, MARGIN = 1440;
@@ -47,11 +86,11 @@ const body = (text) => new Paragraph({
   children: [new TextRun({ text, font: FONT, size: 22 })],
 });
 
-const dotLine = (left, right) => new Paragraph({
-  spacing: { after: 100 },
+const dotLine = (left, right, bold = false) => new Paragraph({
+  spacing: { after: 60 },
   children: [
     new TextRun({
-      font: FONT, size: 22,
+      font: FONT, size: 22, bold,
       children: [
         left,
         new PositionalTab({
@@ -68,8 +107,10 @@ const dotLine = (left, right) => new Paragraph({
 const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
 const cellBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
+// Logo is pre-trimmed to its visible content (no baked-in whitespace border) — see assets/innovr-logo.jpg.
+// Its native aspect ratio is ~5.1:1; keep width:height at that ratio if resizing.
 const logoImage = fs.existsSync(LOGO_PATH)
-  ? new ImageRun({ type: "jpg", data: fs.readFileSync(LOGO_PATH), transformation: { width: 90, height: 90 } })
+  ? new ImageRun({ type: "jpg", data: fs.readFileSync(LOGO_PATH), transformation: { width: 170, height: 33 } })
   : null;
 
 const header = new Table({
@@ -91,9 +132,14 @@ const header = new Table({
           borders: cellBorders,
           verticalAlign: VerticalAlign.TOP,
           children: [
-            ...(logoImage ? [new Paragraph({ alignment: AlignmentType.RIGHT, children: [logoImage] })] : []),
+            ...(logoImage ? [new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              spacing: { after: 40 },
+              children: [logoImage],
+            })] : []),
             new Paragraph({
               alignment: AlignmentType.RIGHT,
+              spacing: { before: 0 },
               children: [new TextRun({ text: "670 E. 32nd St., Ste. 11, Yuma, AZ 85365", font: FONT, size: 18 })],
             }),
           ],
@@ -133,18 +179,31 @@ const attnRe = [
 ];
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+const ALPHA = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+
+const sectionParas = data.sections.flatMap((section, i) => [
+  dotLine(`${ROMAN[i]}.  ${section.title} `, ` ${money(section.fee)}`, true),
+  ...section.deliverables.map((d, j) => new Paragraph({
+    spacing: { after: 40 },
+    indent: { left: 720 },
+    children: [new TextRun({ text: `${ALPHA[j]}. ${d}`, font: FONT, size: 22 })],
+  })),
+]);
+
 const scopeParas = [
   body("Greetings,"),
   body(`It is our pleasure to provide you with this proposal for ${data.introText}. The extent of our scope is as follows:`),
-  ...data.scopeItems.map((item, i) => dotLine(`${ROMAN[i]}.  ${item.label} `, ` ${item.fee}`)),
+  ...sectionParas,
+  new Paragraph({ spacing: { before: 100, after: 200 }, border: { top: { style: BorderStyle.SINGLE, size: 4, color: "000000" } }, children: [] }),
+  dotLine("Total ", ` ${money(totalFee)}`, true),
   new Paragraph({ spacing: { after: 200 }, children: [] }),
   new Paragraph({
     spacing: { after: 100 },
     children: [new TextRun({ text: "Exceptions:", bold: true, underline: {}, font: FONT, size: 22 })],
   }),
   body(
-    "This proposal does not include permit or review fees or attendance at County meetings" +
-    (data.exclusionsExtra ? `, ${data.exclusionsExtra}` : "") + "."
+    "This proposal does not include permit or review fees or attendance at Yuma County or City of " +
+    "Yuma meetings" + (data.exclusionsExtra ? `, ${data.exclusionsExtra}` : "") + "."
   ),
   new Paragraph({
     spacing: { after: 100 },
@@ -152,10 +211,11 @@ const scopeParas = [
   }),
   body("- This proposal valid for 30 days from the date of issuance."),
   body(
-    `The professional fee for this work shall be a stipulated sum of ${data.totalWords} dollars. A ` +
-    `$1,000.00 down payment is required to initiate work, remaining balances will be billed as work ` +
-    `progresses and fully due at completion of work. Other design services not specifically included ` +
-    `in this proposal may be provided upon request by the Client at fees negotiated for those services.`
+    `The professional fee for this work shall be a stipulated sum of ${numberToWords(totalFee)} ` +
+    `dollars (${money(totalFee)}). A down payment of ${money(downPayment)} (${downPaymentPercent}% of ` +
+    `the total fee) is required to initiate work, remaining balances will be billed as work progresses ` +
+    `and fully due at completion of work. Other design services not specifically included in this ` +
+    `proposal may be provided upon request by the Client at fees negotiated for those services.`
   ),
   body(
     "Should you have any questions regarding this fee proposal, please do not hesitate to give me a " +
@@ -202,7 +262,7 @@ const sigTable = new Table({
           width: { size: CONTENT_WIDTH * 0.5, type: WidthType.DXA }, borders: cellBorders,
           children: [
             new Paragraph({ children: [new TextRun({ text: "Arturo J. Garcia, PE", bold: true, font: FONT, size: 22 })] }),
-            new Paragraph({ children: [new TextRun({ text: "Project Manager/Designer", font: FONT, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: "Principal Engineer", font: FONT, size: 22 })] }),
             new Paragraph({ children: [new TextRun({ text: "INNOV-R", bold: true, font: FONT, size: 22 })] }),
             new Paragraph({ children: [new TextRun({ text: "Architecture+Engineering+Construction", font: FONT, size: 18 })] }),
             new Paragraph({ children: [new TextRun({ text: "(919) 213-7623", font: FONT, size: 18 })] }),
@@ -247,5 +307,5 @@ const doc = new Document({
 
 Packer.toBuffer(doc).then((buf) => {
   fs.writeFileSync(outputPath, buf);
-  console.log(`Wrote ${outputPath}`);
+  console.log(`Wrote ${outputPath} — total ${money(totalFee)}, down payment ${money(downPayment)} (${downPaymentPercent}%)`);
 });

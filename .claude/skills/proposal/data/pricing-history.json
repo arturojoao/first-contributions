@@ -1,0 +1,32 @@
+[
+  {
+    "date": "2026-02-23",
+    "client": "Miguel Dominguez",
+    "project": "Ramada – lot improvements, 438 E. Rio Sonora St., San Luis, AZ 85349",
+    "sections": [
+      {
+        "title": "Ramada",
+        "deliverables": ["Structural Calculations", "Structural Plans"],
+        "fee": 2500
+      }
+    ],
+    "totalFee": 2500,
+    "downPayment": 1000,
+    "note": "Pre-30%-policy proposal — used a flat $1,000 down payment, not a percentage."
+  },
+  {
+    "date": "2026-06-11",
+    "client": "Luciano Briones / First Yuma Apostolic Church",
+    "project": "Structural Plans and calculations – clay wall hole repair, 1451 W 5th St, Yuma, AZ 85364",
+    "sections": [
+      {
+        "title": "Structural Engineering",
+        "deliverables": ["Structural Plans and calculations"],
+        "fee": 3500
+      }
+    ],
+    "totalFee": 3500,
+    "downPayment": 1000,
+    "note": "Pre-30%-policy proposal — used a flat $1,000 down payment, not a percentage."
+  }
+]
