@@ -28,5 +28,32 @@
     "totalFee": 3500,
     "downPayment": 1000,
     "note": "Pre-30%-policy proposal — used a flat $1,000 down payment, not a percentage."
+  },
+  {
+    "date": "2026-08-10",
+    "client": "Arnoldo & Gloria Perez",
+    "project": "New Grading & Drainage, APN 697-27-034",
+    "sections": [
+      {
+        "title": "Survey",
+        "deliverables": ["Orthophoto", "Topography of lot"],
+        "fee": 3000
+      },
+      {
+        "title": "Civil Plan",
+        "deliverables": ["Grading Plan", "Drainage Plan"],
+        "fee": 2856
+      },
+      {
+        "title": "Landscaping",
+        "deliverables": [],
+        "fee": 2500
+      }
+    ],
+    "totalFee": 8356,
+    "downPayment": 4178,
+    "downPaymentPercent": 50,
+    "includeAdeqFaaExclusions": true,
+    "note": "Used a 50% down payment, not the 30% standard — treat as a one-off unless the user says otherwise for a similar project. First proposal to use the numbered Exclusions/Additional Notes/\"Fee and Payment Terms\" format, now the standard template."
   }
 ]

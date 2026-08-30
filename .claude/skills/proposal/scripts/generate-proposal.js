@@ -8,18 +8,19 @@
 //   "date": "August 30, 2026",
 //   "clientName": "Jane Doe",
 //   "reTitle": "Test Residence – Deck Addition",
-//   "address": "123 Test St, Yuma, AZ 85364",
+//   "address": "123 Test St, Yuma, AZ 85364",  // "" if the project is only identified by APN
 //   "apn": null,                              // omit or null if none given
 //   "introText": "the deck addition at the above reference address",
 //   "sections": [                             // one or more scope-of-work sections
 //     {
 //       "title": "Structural Engineering",
-//       "deliverables": ["Structural Plans", "Structural Calculations"],
+//       "deliverables": ["Structural Plans", "Structural Calculations"], // [] is fine (e.g. Landscaping)
 //       "fee": 3500                           // plain number, no "$" — this section's fee
 //     }
 //   ],
-//   "exclusionsExtra": "",                    // scope-specific exclusions beyond baseline, or ""
-//   "downPaymentPercent": 30                  // omit to use the 30% default
+//   "exclusionsExtra": [],                    // extra numbered exclusion items beyond baseline, or []
+//   "includeAdeqFaaExclusions": false,        // true for grading/drainage/environmental/airport-adjacent work
+//   "downPaymentPercent": 30                  // omit to use the 30% default; some projects run 50% — ask
 // }
 //
 // Total fee, its down payment, and the amount spelled out in words are all computed here —
@@ -166,16 +167,17 @@ const attnRe = [
       new TextRun({ text: data.reTitle, bold: true, font: FONT, size: 22 }),
     ],
   }),
-  new Paragraph({
+  ...(data.address ? [new Paragraph({
     spacing: { after: 0 },
     indent: { left: 720 },
     children: [new TextRun({ text: data.address, bold: true, font: FONT, size: 22 })],
-  }),
+  })] : []),
   ...(data.apn ? [new Paragraph({
-    spacing: { after: 200 },
+    spacing: { after: 0 },
     indent: { left: 720 },
-    children: [new TextRun({ text: `APN ${data.apn}`, bold: true, font: FONT, size: 22 })],
-  })] : [new Paragraph({ spacing: { after: 200 }, children: [] })]),
+    children: [new TextRun({ text: `APN: ${data.apn}`, bold: true, font: FONT, size: 22 })],
+  })] : []),
+  new Paragraph({ spacing: { after: 200 }, children: [] }),
 ];
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
@@ -190,6 +192,27 @@ const sectionParas = data.sections.flatMap((section, i) => [
   })),
 ]);
 
+const numberedItem = (n, text) => new Paragraph({
+  spacing: { after: 60 },
+  indent: { left: 360 },
+  children: [new TextRun({ text: `${n}. ${text}`, font: FONT, size: 22 })],
+});
+
+const exclusionItems = [
+  "Services not specifically listed above",
+  data.includeAdeqFaaExclusions
+    ? "Application, review, or agency fees (County, City or ADEQ fees)"
+    : "Application, review, or agency fees (County or City fees)",
+  ...(data.includeAdeqFaaExclusions ? ["ADEQ or FAA documentation"] : []),
+  ...(data.exclusionsExtra || []),
+];
+
+const additionalNotes = [
+  "Additional services beyond those listed may be provided under a separate proposal upon client's request.",
+  "The listed fee is a packaged amount. Removal of individual items from the scope will require a revised proposal.",
+  "This proposal is valid for 30 days from the date above.",
+];
+
 const scopeParas = [
   body("Greetings,"),
   body(`It is our pleasure to provide you with this proposal for ${data.introText}. The extent of our scope is as follows:`),
@@ -198,29 +221,31 @@ const scopeParas = [
   dotLine("Total ", ` ${money(totalFee)}`, true),
   new Paragraph({ spacing: { after: 200 }, children: [] }),
   new Paragraph({
-    spacing: { after: 100 },
-    children: [new TextRun({ text: "Exceptions:", bold: true, underline: {}, font: FONT, size: 22 })],
+    spacing: { after: 60 },
+    children: [new TextRun({ text: "Exclusions:", bold: true, font: FONT, size: 22 })],
   }),
-  body(
-    "This proposal does not include permit or review fees or attendance at Yuma County or City of " +
-    "Yuma meetings" + (data.exclusionsExtra ? `, ${data.exclusionsExtra}` : "") + "."
-  ),
+  body("This proposal does not include the following:"),
+  ...exclusionItems.map((text, i) => numberedItem(i + 1, text)),
+  new Paragraph({ spacing: { after: 140 }, children: [] }),
+  new Paragraph({
+    spacing: { after: 60 },
+    children: [new TextRun({ text: "Additional Notes:", bold: true, font: FONT, size: 22 })],
+  }),
+  ...additionalNotes.map((text, i) => numberedItem(i + 1, text)),
+  new Paragraph({ spacing: { after: 140 }, children: [] }),
   new Paragraph({
     spacing: { after: 100 },
-    children: [new TextRun({ text: "Note:", bold: true, underline: {}, font: FONT, size: 22 })],
+    children: [new TextRun({ text: "Fee and Payment Terms", bold: true, font: FONT, size: 22 })],
   }),
-  body("- This proposal valid for 30 days from the date of issuance."),
   body(
-    `The professional fee for this work shall be a stipulated sum of ${numberToWords(totalFee)} ` +
-    `dollars (${money(totalFee)}). A down payment of ${money(downPayment)} (${downPaymentPercent}% of ` +
-    `the total fee) is required to initiate work, remaining balances will be billed as work progresses ` +
-    `and fully due at completion of work. Other design services not specifically included in this ` +
-    `proposal may be provided upon request by the Client at fees negotiated for those services.`
+    `The professional fee for the services described herein shall be a stipulated sum of ` +
+    `${numberToWords(totalFee)} dollars (${money(totalFee)}). A ${downPaymentPercent}% down payment ` +
+    `(${money(downPayment)}) is required to initiate work, with remaining balances billed as work ` +
+    `progresses. Final payment is due upon completion of services.`
   ),
   body(
-    "Should you have any questions regarding this fee proposal, please do not hesitate to give me a " +
-    "call. I personally look forward to working with you on this project and remain available to " +
-    "continue our work."
+    "Please feel free to contact me with any questions or if additional clarification is needed. I " +
+    "look forward to working with you on this project."
   ),
 ];
 
@@ -261,12 +286,12 @@ const sigTable = new Table({
         new TableCell({
           width: { size: CONTENT_WIDTH * 0.5, type: WidthType.DXA }, borders: cellBorders,
           children: [
-            new Paragraph({ children: [new TextRun({ text: "Arturo J. Garcia, PE", bold: true, font: FONT, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: "Arturo J. Garcia, P.E.", bold: true, font: FONT, size: 22 })] }),
             new Paragraph({ children: [new TextRun({ text: "Principal Engineer", font: FONT, size: 22 })] }),
             new Paragraph({ children: [new TextRun({ text: "INNOV-R", bold: true, font: FONT, size: 22 })] }),
             new Paragraph({ children: [new TextRun({ text: "Architecture+Engineering+Construction", font: FONT, size: 18 })] }),
-            new Paragraph({ children: [new TextRun({ text: "(919) 213-7623", font: FONT, size: 18 })] }),
-            new Paragraph({ children: [new TextRun({ text: "Arturo@innovr.us", font: FONT, size: 18 })] }),
+            new Paragraph({ children: [new TextRun({ text: "Cell: (919) 213-7623", font: FONT, size: 18 })] }),
+            new Paragraph({ children: [new TextRun({ text: "Email: Arturo@innovr.us", font: FONT, size: 18 })] }),
           ],
         }),
         new TableCell({
