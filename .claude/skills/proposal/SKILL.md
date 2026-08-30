@@ -9,11 +9,11 @@ Produces an INNOV-R Architecture+Engineering+Construction fee proposal matching 
 template, delivered as both a `.docx` and a `.pdf`. Built from two prior proposals on file
 (structural plans/calculations jobs); the structure below is copied from them exactly.
 
-Note: fixed dollar amounts below are written as `\$1,000.00` (backslash before the `$`), not `$1,000.00`.
-This is intentional — a `$` immediately followed by a digit in this file gets corrupted by
-positional-parameter-style substitution when the skill is invoked with args (e.g. `$1,000.00` became
-`run,000.00` in testing, replaced with words from the invocation's args string). Keep the backslash;
-write the actual generated document with a plain `$`, no backslash.
+Note: fixed dollar amounts below are backslash-escaped (`\$1,000.00`, not a plain `$` directly
+followed by a digit) because a `$` immediately followed by a digit in this file is misinterpreted as
+a shell-style positional parameter (`\$1`, `\$2`, ...) and silently replaced with a word from the
+skill invocation's `args` string when present — confirmed by testing. Keep the backslash on fixed
+amounts here; the actual generated document should still use a plain, unescaped `$`.
 
 ## Required inputs — ask if any are missing, do not guess
 
